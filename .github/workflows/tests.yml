@@ -1,0 +1,53 @@
+name: Tests & Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  stylua:
+    name: StyLua Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check formatting with StyLua
+        uses: JohnnyMorganz/stylua-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: --check .
+
+  test:
+    name: Run Tests (${{ matrix.neovim_version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        neovim_version: [nightly]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Neovim
+        uses: rhysd/action-setup-vim@v1.6.1
+        with:
+          neovim: true
+          version: ${{ matrix.neovim_version }}
+
+      - name: Install plenary.nvim
+        run: |
+          git clone --depth=1 https://github.com/nvim-lua/plenary.nvim \
+            ~/.local/share/nvim/lazy/plenary.nvim
+
+      - name: Run Tests
+        run: |
+          pip install pynvim
+          make test
+        timeout-minutes: 10
